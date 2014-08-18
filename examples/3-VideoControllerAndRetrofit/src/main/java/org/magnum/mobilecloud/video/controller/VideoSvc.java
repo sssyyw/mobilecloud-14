@@ -42,7 +42,7 @@ public class VideoSvc implements VideoSvcApi {
 	// annotation on the Video parameter is what tells Spring
 	// to interpret the HTTP request body as JSON and convert
 	// it into a Video object to pass into the method. The
-	// @ResponseBody annotation tells Spring to conver the
+	// @ResponseBody annotation tells Spring to convert the
 	// return value from the method back into JSON and put
 	// it into the body of the HTTP response to the client.
 	//
