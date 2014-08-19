@@ -42,7 +42,7 @@ public class VideoCtrl {
 	public @ResponseBody Video addVideo(@RequestBody Video v){
 		checkAndSetId(v);
 		//generate data url for the video
-		v.setLocation(getDataUrl(v.getId()));
+		v.setDataUrl((getDataUrl(v.getId())));
 		videos.put(v.getId(), v);
 		return v;
 	}
@@ -50,29 +50,21 @@ public class VideoCtrl {
 	@RequestMapping(value=VideoSvcApi.VIDEO_DATA_PATH, method=RequestMethod.POST)
 	public @ResponseBody VideoStatus addVideoData(@PathVariable("id") long videoId,
 			                                     @RequestParam("data") MultipartFile videoData,
-			                                     HttpServletResponse response){
-		if (!videos.containsKey(videoId)){
+			                                     HttpServletResponse response) throws IOException{
+		if (videos.containsKey(videoId)){
+		    Video loadingVideo = videos.get(videoId);
+   			
 			try {
-				response.sendError(HttpServletResponse.SC_NOT_FOUND);
+				videoDataMgr = VideoFileManager.get();
+				saveSomeVideo(loadingVideo, videoData);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
-			}
+			}	
+			return new VideoStatus(VideoState.READY);
 		}
-			
-		Video loadingVideo = videos.get(videoId);	
 		
-		
-		try {
-			videoDataMgr = VideoFileManager.get();
-			saveSomeVideo(loadingVideo, videoData);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	    
-
-		
+		response.setStatus(HttpServletResponse.SC_NOT_FOUND);
 		return new VideoStatus(VideoState.READY);
 	}
 	
@@ -80,27 +72,21 @@ public class VideoCtrl {
 	public void getVideoData(@PathVariable("id") long videoId,
 			                                      HttpServletResponse response
 			                                     ){
-		if (!videos.containsKey(videoId)){
+		if (videos.containsKey(videoId)){
+			Video v = videos.get(videoId);
 			try {
-				response.sendError(HttpServletResponse.SC_NOT_FOUND);
+				videoDataMgr = VideoFileManager.get();
+				if (videoDataMgr.hasVideoData(v)){
+				    serveSomeVideo(v, response);
+				    //return response;
+				}
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
-			}
+			}	    			
 		}
 		
-		Video v = videos.get(videoId);
-		try {
-			videoDataMgr = VideoFileManager.get();
-			if (videoDataMgr.hasVideoData(v)){
-			    serveSomeVideo(v, response);
-			    //return response;
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}	    
+		response.setStatus(HttpServletResponse.SC_NOT_FOUND);
 		
-		//return response;
 	}
 	
 	// You would need some Controller method to call this...
