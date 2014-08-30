@@ -109,7 +109,7 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 		// http.authorizeRequests().antMatchers(HttpMethod.POST, "/video").hasRole("user");
 		
 		// We force clients to authenticate before accessing ANY URLs 
-		// other than the login and lougout that we have configured above.
+		// other than the login and logout that we have configured above.
 		http.authorizeRequests().anyRequest().authenticated();
 	}
 
