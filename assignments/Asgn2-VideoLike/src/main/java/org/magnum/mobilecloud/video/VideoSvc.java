@@ -1,8 +1,12 @@
 package org.magnum.mobilecloud.video;
 
+import java.io.IOException;
 import java.security.Principal;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -18,7 +22,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import retrofit.http.Path;
+import com.google.common.collect.Lists;
+
 
 
 /**
@@ -53,22 +58,50 @@ public class VideoSvc {
 	// Also notice that we don't even need a setter for Spring to
 	// do the injection.
 	//
-	private List<String> likeGroup = new ArrayList<String>(); 
+	private Map<Long, List<String>> likeGroup = new HashMap<Long, List<String>>(); 
 	
 	@Autowired
 	private VideoRepository videos;
 	
+	@RequestMapping(value=VideoSvcApi.VIDEO_SVC_PATH, method=RequestMethod.POST)
+	public @ResponseBody Video addVideo(@RequestBody Video v){
+		 videos.save(v);
+		 return v;
+	}
 	
+	@RequestMapping(value=VideoSvcApi.VIDEO_SVC_PATH, method=RequestMethod.GET)
+	public @ResponseBody Collection<Video> getVideoList(){
+		return Lists.newArrayList(videos.findAll());
+	}
+	
+	@RequestMapping(value=VideoSvcApi.VIDEO_SVC_PATH + "/{id}", method=RequestMethod.GET)
+	public @ResponseBody Video getVideo(@PathVariable("id") long id,
+                                        HttpServletResponse response
+                                       ){
+        if (videos.exists(id)){
+            Video v = videos.findOne(id);
+            return v;
+        } else {
+        	response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+        	return new Video();
+        }	    			
+    }
+
+
 	@RequestMapping(value=VideoSvcApi.VIDEO_SVC_PATH + "/{id}/like", method=RequestMethod.POST)
 	public void likeVideo(@PathVariable("id") long id, 
 			              HttpServletResponse response,
 			              Principal p){
 		 String userName = p.getName();
 		 if (videos.exists(id)){
-			 if (likeGroup.contains(userName)){				 
+			 // init
+			 if (!likeGroup.containsKey(id))
+				 likeGroup.put(id, new ArrayList<String>());
+			 
+			 if (likeGroup.get(id).contains(userName)){				 
 				 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 			 } else {
-				 likeGroup.add(userName);
+				 likeGroup.get(id).add(userName);
 			     Video v = videos.findOne(id);
 			     v.setLikes(v.getLikes()+1);
 			     videos.save(v);
@@ -85,10 +118,14 @@ public class VideoSvc {
                             Principal p){
 		String userName = p.getName();
 		if (videos.exists(id)){
-			 if (!likeGroup.contains(userName)){				 
+			// init
+			if (!likeGroup.containsKey(id))
+				 likeGroup.put(id, new ArrayList<String>());
+			
+			 if (!likeGroup.get(id).contains(userName)){				 
 				 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 			 } else {
-				 likeGroup.remove(userName);
+				 likeGroup.get(id).remove(userName);
 			     Video v = videos.findOne(id);
 			     v.setLikes(v.getLikes()-1);
 			     videos.save(v);
@@ -104,12 +141,36 @@ public class VideoSvc {
 	public @ResponseBody List<String> getUsersWhoLikedVideo(@PathVariable("id") long id,
 			                                                HttpServletResponse response){
 		if (videos.exists(id)){
-			 return likeGroup;
+			// init
+			if (!likeGroup.containsKey(id))
+			    likeGroup.put(id, new ArrayList<String>());
+	        return likeGroup.get(id);
 		 } else {
 			 response.setStatus(HttpServletResponse.SC_NOT_FOUND);
 			 return new ArrayList<String>();
 		 }
         
+	}
+	
+	// Receives GET requests to /video/find and returns all Videos
+	// that have a title (e.g., Video.name) matching the "title" request
+	// parameter value that is passed by the client
+	@RequestMapping(value=VideoSvcApi.VIDEO_TITLE_SEARCH_PATH, method=RequestMethod.GET)
+	public @ResponseBody Collection<Video> findByTitle(
+			// Tell Spring to use the "title" parameter in the HTTP request's query
+			// string as the value for the title method parameter
+			@RequestParam(VideoSvcApi.TITLE_PARAMETER) String title
+	){
+		return videos.findByName(title);
+	}
+	
+	@RequestMapping(value=VideoSvcApi.VIDEO_DURATION_SEARCH_PATH, method=RequestMethod.GET)
+	public @ResponseBody Collection<Video> findByDurationLessThan(
+			// Tell Spring to use the "title" parameter in the HTTP request's query
+			// string as the value for the title method parameter
+			@RequestParam(VideoSvcApi.DURATION_PARAMETER) long duration
+	){
+		return videos.findByDurationLessThan(duration);
 	}
 	
 }
