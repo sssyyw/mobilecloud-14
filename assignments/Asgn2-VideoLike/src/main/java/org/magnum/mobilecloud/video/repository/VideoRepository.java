@@ -23,7 +23,7 @@ import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 // 4. Send search requests to our findByXYZ methods to /video/search/findByXYZ
 //    (e.g., /video/search/findByName?title=Foo)
 //
-@RepositoryRestResource(collectionResourceRel="videos", path = VideoSvcApi.VIDEO_SVC_PATH)
+@RepositoryRestResource(path = VideoSvcApi.VIDEO_SVC_PATH)
 public interface VideoRepository extends CrudRepository<Video, Long>{
 
 	// Find all videos with a matching title (e.g., Video.name)
